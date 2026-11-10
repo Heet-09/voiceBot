@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Talk to Heet</title>
+<style>
+  :root { --bg:#f6f7fb; --card:#fff; --text:#1b1f2a; --muted:#667085; --accent:#4f46e5; --accent-2:#e0e7ff; --bubble-me:#4f46e5; --bubble-bot:#eef0f6; --border:#e4e7ee; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0e1118; --card:#171b25; --text:#eef0f6; --muted:#98a2b3; --accent:#818cf8; --accent-2:#262b45; --bubble-me:#4f46e5; --bubble-bot:#222736; --border:#2a3042; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:24px 16px 40px; }
+  h1 { margin:0 0 4px; font-size:1.7rem; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; }
+  .mic-wrap { display:flex; flex-direction:column; align-items:center; gap:8px; margin:8px 0 16px; }
+  #mic { width:88px; height:88px; border-radius:50%; border:0; background:var(--accent); color:#fff; font-size:34px; cursor:pointer; box-shadow:0 6px 18px rgba(79,70,229,.35); }
+  #mic:disabled { opacity:.5; cursor:not-allowed; }
+  #mic.listening { background:#dc2626; animation:pulse 1.2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(220,38,38,.5)} 100%{box-shadow:0 0 0 22px rgba(220,38,38,0)} }
+  #status { color:var(--muted); min-height:1.5em; text-align:center; font-size:.95rem; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:16px; }
+  .chip { background:var(--accent-2); color:var(--text); border:1px solid var(--border); border-radius:999px; padding:8px 14px; font-size:.9rem; cursor:pointer; }
+  .chip:hover { border-color:var(--accent); }
+  #chat { display:flex; flex-direction:column; gap:10px; max-height:46vh; overflow-y:auto; padding:4px 2px; }
+  .msg { max-width:85%; padding:10px 14px; border-radius:16px; white-space:pre-wrap; }
+  .me { align-self:flex-end; background:var(--bubble-me); color:#fff; border-bottom-right-radius:4px; }
+  .bot { align-self:flex-start; background:var(--bubble-bot); border-bottom-left-radius:4px; }
+  form { display:flex; gap:8px; margin-top:12px; }
+  input[type=text] { flex:1; padding:12px 14px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); font:inherit; }
+  button.btn { padding:0 16px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); font:inherit; cursor:pointer; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .tools { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+  .tools .btn { padding:6px 12px; font-size:.85rem; }
+  .note { color:var(--muted); font-size:.85rem; text-align:center; margin-top:8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Talk to Heet</h1>
+  <p class="sub">A voice bot that answers interview questions the way I would. Tap the mic and ask away, or pick a question below.</p>
+
+  <div class="card">
+    <div class="mic-wrap">
+      <button id="mic" aria-label="Tap to speak">🎤</button>
+      <div id="status" role="status" aria-live="polite">Tap the mic and ask a question</div>
+    </div>
+
+    <div class="chips" id="chips"></div>
+
+    <div id="chat" aria-live="polite"></div>
+
+    <form id="form">
+      <input type="text" id="text" placeholder="Or type your question…" autocomplete="off" maxlength="500">
+      <button class="btn primary" type="submit">Send</button>
+    </form>
+    <div class="tools">
+      <button class="btn" id="stop" type="button">⏹ Stop voice</button>
+      <button class="btn" id="mute" type="button">🔊 Voice on</button>
+    </div>
+    <div class="note" id="note"></div>
+  </div>
+</main>
+
+<script>
+const QUESTIONS = [
+  "What should we know about your life story in a few sentences?",
+  "What's your #1 superpower?",
+  "What are the top 3 areas you'd like to grow in?",
+  "What misconception do your coworkers have about you?",
+  "How do you push your boundaries and limits?"
+];
+
+const $ = (id) => document.getElementById(id);
+const chat = $('chat'), statusEl = $('status'), mic = $('mic'), textIn = $('text');
+const history = [];
+let muted = false, busy = false, listening = false, recog = null, voice = null;
+
+QUESTIONS.forEach((q) => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.textContent = q;
+  b.onclick = () => ask(q);
+  $('chips').appendChild(b);
+});
+
+// ---- Text to speech ----
+const synth = window.speechSynthesis;
+function pickVoice() {
+  if (!synth) return;
+  const vs = synth.getVoices().filter((v) => /^en/i.test(v.lang));
+  voice = vs.find((v) => /natural|google/i.test(v.name)) || vs.find((v) => v.default) || vs[0] || null;
+}
+if (synth) { pickVoice(); synth.onvoiceschanged = pickVoice; }
+
+function speak(text) {
+  if (!synth || muted) return Promise.resolve();
+  synth.cancel();
+  const parts = text.match(/[^.!?]+[.!?]*/g) || [text];
+  return new Promise((resolve) => {
+    parts.forEach((p, i) => {
+      const u = new SpeechSynthesisUtterance(p.trim());
+      if (voice) u.voice = voice;
+      u.lang = (voice && voice.lang) || 'en-US';
+      if (i === parts.length - 1) { u.onend = resolve; u.onerror = resolve; }
+      synth.speak(u);
+    });
+  });
+}
+$('stop').onclick = () => { if (synth) synth.cancel(); setStatus('Tap the mic and ask a question'); };
+$('mute').onclick = () => {
+  muted = !muted;
+  $('mute').textContent = muted ? '🔇 Voice off' : '🔊 Voice on';
+  if (muted && synth) synth.cancel();
+};
+
+// ---- Speech to text ----
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) {
+  recog = new SR();
+  recog.lang = 'en-US';
+  recog.interimResults = false;
+  recog.maxAlternatives = 1;
+  recog.onresult = (e) => { const t = e.results[0][0].transcript; if (t) ask(t); };
+  recog.onerror = (e) => {
+    listening = false; mic.classList.remove('listening');
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      setStatus('Microphone blocked. Allow mic access, or type your question below.');
+    } else if (e.error === 'no-speech') {
+      setStatus("I didn't hear anything. Tap the mic and try again.");
+    } else {
+      setStatus('Voice input had a problem. You can type instead.');
+    }
+  };
+  recog.onend = () => { listening = false; mic.classList.remove('listening'); };
+  mic.onclick = () => {
+    if (busy) return;
+    if (synth) synth.cancel();
+    if (listening) { recog.stop(); return; }
+    try { recog.start(); listening = true; mic.classList.add('listening'); setStatus('Listening… ask your question'); }
+    catch (_) {}
+  };
+} else {
+  mic.disabled = true;
+  $('note').textContent = 'Voice input works best in Chrome, Edge or Safari. You can still type your question.';
+  setStatus('Type your question below');
+}
+
+// ---- Chat ----
+function setStatus(s) { statusEl.textContent = s; }
+function add(role, text) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + (role === 'user' ? 'me' : 'bot');
+  d.textContent = text;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function ask(q) {
+  q = q.trim();
+  if (!q || busy) return;
+  busy = true;
+  if (synth) synth.cancel();
+  add('user', q);
+  history.push({ role: 'user', content: q });
+  textIn.value = '';
+  setStatus('Thinking…');
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.reply) throw new Error(data.error || 'Something went wrong. Please try again.');
+    history.push({ role: 'assistant', content: data.reply });
+    add('assistant', data.reply);
+    setStatus('Speaking…');
+    await speak(data.reply);
+    setStatus('Tap the mic and ask another question');
+  } catch (e) {
+    history.pop();
+    add('assistant', e.message);
+    setStatus('Tap the mic to try again');
+  } finally {
+    busy = false;
+  }
+}
+
+$('form').onsubmit = (e) => { e.preventDefault(); ask(textIn.value); };
+</script>
+</body>
+</html>
