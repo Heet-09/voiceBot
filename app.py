@@ -9,6 +9,7 @@ from persona import PERSONA
 load_dotenv()
 
 app = Flask(__name__)
+app.logger.setLevel("INFO")
 
 # Tried in order; falls through on overload (429/503) or network errors.
 MODELS = [
@@ -61,8 +62,11 @@ def chat():
         "generationConfig": {"temperature": 0.7, "maxOutputTokens": 400},
     }
 
+    app.logger.info("chat: %d turns, last user message: %r", len(contents), contents[-1]["parts"][0]["text"])
+
     r = None
     for model in MODELS:
+        app.logger.info("chat: trying model %s", model)
         try:
             r = requests.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
@@ -70,8 +74,12 @@ def chat():
                 json=payload,
                 timeout=12,
             )
-        except requests.RequestException:
+        except requests.RequestException as exc:
+            app.logger.warning("chat: %s network error: %s", model, exc)
             continue
+        app.logger.info("chat: %s -> HTTP %s", model, r.status_code)
+        if not r.ok:
+            app.logger.warning("chat: %s error body: %s", model, r.text[:300])
         if r.status_code not in (429, 503):
             break
     if r is None:

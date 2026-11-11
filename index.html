@@ -35,6 +35,8 @@
   .tools { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
   .tools .btn { padding:6px 12px; font-size:.85rem; }
   .note { color:var(--muted); font-size:.85rem; text-align:center; margin-top:8px; }
+  #debug { display:none; margin-top:12px; padding:10px; border-radius:12px; border:1px dashed var(--border); font:12px/1.4 ui-monospace,Consolas,monospace; max-height:200px; overflow-y:auto; white-space:pre-wrap; color:var(--muted); }
+  body.debug #debug { display:block; }
 </style>
 </head>
 <body>
@@ -61,6 +63,7 @@
       <button class="btn" id="mute" type="button">🔊 Voice on</button>
     </div>
     <div class="note" id="note"></div>
+    <div id="debug" aria-label="Debug log"></div>
   </div>
 </main>
 
@@ -77,6 +80,28 @@ const $ = (id) => document.getElementById(id);
 const chat = $('chat'), statusEl = $('status'), mic = $('mic'), textIn = $('text');
 const history = [];
 let muted = false, busy = false, listening = false, recog = null, voice = null;
+
+// ---- Debugging: open the page with ?debug=1 to show an on-page log (also in the browser console) ----
+const DEBUG = new URLSearchParams(location.search).has('debug');
+if (DEBUG) document.body.classList.add('debug');
+function dbg(...a) {
+  console.log('[voicebot]', ...a);
+  if (!DEBUG) return;
+  const el = $('debug');
+  el.textContent += new Date().toLocaleTimeString() + '  ' + a.map((x) => typeof x === 'string' ? x : JSON.stringify(x)).join(' ') + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+dbg('page loaded', { secureContext: window.isSecureContext, host: location.host, userAgent: navigator.userAgent });
+if (navigator.permissions) {
+  navigator.permissions.query({ name: 'microphone' })
+    .then((p) => { dbg('mic permission:', p.state); p.onchange = () => dbg('mic permission changed:', p.state); })
+    .catch((e) => dbg('mic permission query unsupported:', e.message));
+}
+if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+  navigator.mediaDevices.enumerateDevices()
+    .then((ds) => dbg('audio inputs found:', ds.filter((d) => d.kind === 'audioinput').length))
+    .catch((e) => dbg('enumerateDevices failed:', e.message));
+}
 
 QUESTIONS.forEach((q) => {
   const b = document.createElement('button');
@@ -103,7 +128,8 @@ function speak(text) {
       const u = new SpeechSynthesisUtterance(p.trim());
       if (voice) u.voice = voice;
       u.lang = (voice && voice.lang) || 'en-US';
-      if (i === parts.length - 1) { u.onend = resolve; u.onerror = resolve; }
+      u.onerror = (e) => { dbg('speech error:', e.error); if (i === parts.length - 1) resolve(); };
+      if (i === parts.length - 1) { u.onend = resolve; }
       synth.speak(u);
     });
   });
@@ -122,8 +148,19 @@ if (SR) {
   recog.lang = 'en-US';
   recog.interimResults = false;
   recog.maxAlternatives = 1;
-  recog.onresult = (e) => { const t = e.results[0][0].transcript; if (t) ask(t); };
+  recog.onstart = () => dbg('recognition: started');
+  recog.onaudiostart = () => dbg('recognition: audio capture started (mic is live)');
+  recog.onsoundstart = () => dbg('recognition: sound detected');
+  recog.onspeechstart = () => dbg('recognition: speech detected');
+  recog.onspeechend = () => dbg('recognition: speech ended');
+  recog.onnomatch = () => dbg('recognition: no match');
+  recog.onresult = (e) => {
+    const t = e.results[0][0].transcript;
+    dbg('recognition: result', { transcript: t, confidence: e.results[0][0].confidence });
+    if (t) ask(t);
+  };
   recog.onerror = (e) => {
+    dbg('recognition: ERROR', e.error, e.message || '');
     listening = false; mic.classList.remove('listening');
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
       setStatus('Microphone blocked. Allow mic access, or type your question below.');
@@ -133,15 +170,17 @@ if (SR) {
       setStatus('Voice input had a problem. You can type instead.');
     }
   };
-  recog.onend = () => { listening = false; mic.classList.remove('listening'); };
+  recog.onend = () => { dbg('recognition: ended'); listening = false; mic.classList.remove('listening'); };
   mic.onclick = () => {
+    dbg('mic clicked', { busy, listening });
     if (busy) return;
     if (synth) synth.cancel();
     if (listening) { recog.stop(); return; }
     try { recog.start(); listening = true; mic.classList.add('listening'); setStatus('Listening… ask your question'); }
-    catch (_) {}
+    catch (err) { dbg('recog.start() threw:', err.message); }
   };
 } else {
+  dbg('SpeechRecognition NOT supported in this browser');
   mic.disabled = true;
   $('note').textContent = 'Voice input works best in Chrome, Edge or Safari. You can still type your question.';
   setStatus('Type your question below');
@@ -166,6 +205,7 @@ async function ask(q) {
   history.push({ role: 'user', content: q });
   textIn.value = '';
   setStatus('Thinking…');
+  dbg('ask:', q, '| history length:', history.length);
   try {
     const r = await fetch('/api/chat', {
       method: 'POST',
@@ -173,13 +213,18 @@ async function ask(q) {
       body: JSON.stringify({ messages: history })
     });
     const data = await r.json().catch(() => ({}));
+    dbg('/api/chat response:', r.status, data);
     if (!r.ok || !data.reply) throw new Error(data.error || 'Something went wrong. Please try again.');
     history.push({ role: 'assistant', content: data.reply });
     add('assistant', data.reply);
-    setStatus('Speaking…');
+    busy = false; // unlock the mic now; don't wait for speech to finish
+    setStatus('Speaking… (tap the mic to interrupt)');
+    dbg('speaking reply, voice:', voice ? voice.name : 'default', '| muted:', muted);
     await speak(data.reply);
-    setStatus('Tap the mic and ask another question');
+    dbg('speech finished');
+    if (!listening) setStatus('Tap the mic and ask another question');
   } catch (e) {
+    dbg('ask failed:', e.message);
     history.pop();
     add('assistant', e.message);
     setStatus('Tap the mic to try again');
