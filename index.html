@@ -43,6 +43,9 @@
   #mic:hover:not(:disabled) { background:var(--accent-hover); transform:translateY(-1px); }
   #mic:focus-visible, .chip:focus-visible, .btn:focus-visible, input:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
   #mic:disabled { opacity:.45; cursor:not-allowed; }
+  /* Stacked layout: the mic is moved next to the text box (see placeMic) */
+  form #mic { width:46px; height:46px; flex:none; box-shadow:none; }
+  form #mic svg { width:22px; height:22px; }
   #mic.listening { background:var(--rec); animation:ring 1.4s infinite; }
   @keyframes ring { 0%{box-shadow:0 0 0 0 rgba(194,65,12,.45)} 100%{box-shadow:0 0 0 20px rgba(194,65,12,0)} }
   #status { color:var(--muted); min-height:1.5em; text-align:center; font-size:.95rem; }
@@ -129,6 +132,15 @@ const QUESTIONS = [
 
 const $ = (id) => document.getElementById(id);
 const chat = $('chat'), statusEl = $('status'), mic = $('mic'), textIn = $('text');
+
+// When the two panels stack (narrow screens), move the mic next to the input box.
+const stacked = window.matchMedia('(max-width:899px)');
+function placeMic() {
+  if (stacked.matches) $('form').prepend(mic);
+  else document.querySelector('.mic-wrap').prepend(mic);
+}
+stacked.addEventListener('change', placeMic);
+placeMic();
 const history = [];
 let muted = false, busy = false, listening = false, recog = null, voice = null;
 
@@ -245,6 +257,7 @@ function add(role, text) {
   d.textContent = text;
   chat.appendChild(d);
   chat.scrollTop = chat.scrollHeight;
+  d.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); // also brings it into view when the page itself scrolls
 }
 
 async function ask(q) {
