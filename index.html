@@ -5,65 +5,116 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Talk to Heet</title>
 <style>
-  :root { --bg:#f6f7fb; --card:#fff; --text:#1b1f2a; --muted:#667085; --accent:#4f46e5; --accent-2:#e0e7ff; --bubble-me:#4f46e5; --bubble-bot:#eef0f6; --border:#e4e7ee; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#0e1118; --card:#171b25; --text:#eef0f6; --muted:#98a2b3; --accent:#818cf8; --accent-2:#262b45; --bubble-me:#4f46e5; --bubble-bot:#222736; --border:#2a3042; }
+  :root {
+    --bg:#f8f3ea; --card:#fffdf9; --text:#1f2430; --muted:#6b6f7b; --line:#e6dccb;
+    --accent:#0f5c5a; --accent-hover:#0b4745; --accent-soft:#e4f0ee; --rec:#c2410c;
+    --me:#0f5c5a; --me-text:#fff; --bot:#f3ece0; --doodle:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='320'%20height='320'%20viewBox='0%200%20320%20320'%20fill='none'%20stroke='%23b45f3c'%20stroke-opacity='0.22'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M22%2052%20q10%20-14%2020%200%20t20%200%20t20%200'/%3E%3Cpath%20d='M236%2036%20l4%2010%2010%204%20-10%204%20-4%2010%20-4%20-10%20-10%20-4%2010%20-4z'/%3E%3Ccircle%20cx='150'%20cy='34'%20r='9'/%3E%3Cpath%20d='M262%20120%20q14%20-6%2020%208%20t-6%2020'/%3E%3Cpath%20d='M40%20150%20c18%20-20%2040%20-20%2058%200'/%3E%3Cpath%20d='M40%20150%20l-2%20-12%20M98%20150%20l2%20-12'/%3E%3Cpath%20d='M180%20112%20l26%200%20m-8%20-8%20l8%208%20-8%208'/%3E%3Crect%20x='26'%20y='214'%20width='34'%20height='24'%20rx='6'/%3E%3Cpath%20d='M34%20238%20l-4%2010%2014%20-10'/%3E%3Cpath%20d='M128%20196%20v22%20M138%20188%20v38%20M148%20200%20v14%20M158%20192%20v30%20M168%20204%20v10'/%3E%3Cpath%20d='M240%20214%20l5%2012%2012%205%20-12%205%20-5%2012%20-5%20-12%20-12%20-5%2012%20-5z'/%3E%3Cpath%20d='M96%20288%20q12%20-16%2024%200%20t24%200'/%3E%3Ccircle%20cx='286'%20cy='284'%20r='6'/%3E%3Ccircle%20cx='20'%20cy='112'%20r='4'/%3E%3Ccircle%20cx='214'%20cy='272'%20r='3'/%3E%3Cpath%20d='M300%20188%20l-18%2018%20M282%20188%20l18%2018'/%3E%3C/svg%3E");
+    --shadow:0 1px 2px rgba(60,40,10,.06), 0 12px 32px rgba(60,40,10,.08);
   }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  main { max-width:720px; margin:0 auto; padding:24px 16px 40px; }
-  h1 { margin:0 0 4px; font-size:1.7rem; }
-  .sub { color:var(--muted); margin:0 0 20px; }
-  .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; }
-  .mic-wrap { display:flex; flex-direction:column; align-items:center; gap:8px; margin:8px 0 16px; }
-  #mic { width:88px; height:88px; border-radius:50%; border:0; background:var(--accent); color:#fff; font-size:34px; cursor:pointer; box-shadow:0 6px 18px rgba(79,70,229,.35); }
-  #mic:disabled { opacity:.5; cursor:not-allowed; }
-  #mic.listening { background:#dc2626; animation:pulse 1.2s infinite; }
-  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(220,38,38,.5)} 100%{box-shadow:0 0 0 22px rgba(220,38,38,0)} }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14171d; --card:#1b1f27; --text:#ecebe6; --muted:#9a9ea9; --line:#2b303b;
+      --accent:#5fb8b2; --accent-hover:#7accc6; --accent-soft:#20332f; --rec:#f08a5d;
+      --me:#2f8f88; --me-text:#fff; --bot:#242933; --doodle:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='320'%20height='320'%20viewBox='0%200%20320%20320'%20fill='none'%20stroke='%23e8c9a0'%20stroke-opacity='0.10'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M22%2052%20q10%20-14%2020%200%20t20%200%20t20%200'/%3E%3Cpath%20d='M236%2036%20l4%2010%2010%204%20-10%204%20-4%2010%20-4%20-10%20-10%20-4%2010%20-4z'/%3E%3Ccircle%20cx='150'%20cy='34'%20r='9'/%3E%3Cpath%20d='M262%20120%20q14%20-6%2020%208%20t-6%2020'/%3E%3Cpath%20d='M40%20150%20c18%20-20%2040%20-20%2058%200'/%3E%3Cpath%20d='M40%20150%20l-2%20-12%20M98%20150%20l2%20-12'/%3E%3Cpath%20d='M180%20112%20l26%200%20m-8%20-8%20l8%208%20-8%208'/%3E%3Crect%20x='26'%20y='214'%20width='34'%20height='24'%20rx='6'/%3E%3Cpath%20d='M34%20238%20l-4%2010%2014%20-10'/%3E%3Cpath%20d='M128%20196%20v22%20M138%20188%20v38%20M148%20200%20v14%20M158%20192%20v30%20M168%20204%20v10'/%3E%3Cpath%20d='M240%20214%20l5%2012%2012%205%20-12%205%20-5%2012%20-5%20-12%20-12%20-5%2012%20-5z'/%3E%3Cpath%20d='M96%20288%20q12%20-16%2024%200%20t24%200'/%3E%3Ccircle%20cx='286'%20cy='284'%20r='6'/%3E%3Ccircle%20cx='20'%20cy='112'%20r='4'/%3E%3Ccircle%20cx='214'%20cy='272'%20r='3'/%3E%3Cpath%20d='M300%20188%20l-18%2018%20M282%20188%20l18%2018'/%3E%3C/svg%3E");
+      --shadow:0 12px 32px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--text); font:16px/1.55 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+         background-color:var(--bg); background-image:var(--doodle); background-size:320px 320px; }
+  main { max-width:1080px; margin:0 auto; padding:28px 20px 20px; display:flex; flex-direction:column; gap:18px; }
+  header { text-align:center; }
+  h1 { margin:0 0 4px; font:600 clamp(1.8rem,4vw,2.4rem)/1.1 Georgia,"Times New Roman",serif; letter-spacing:-.01em; }
+  .sub { color:var(--muted); margin:0; }
+  .layout { display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:18px; flex:1; min-height:0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:22px 20px 16px; box-shadow:var(--shadow); min-height:0; display:flex; flex-direction:column; }
+  .convo { padding-bottom:18px; }
+  .controls { overflow-y:auto; scrollbar-width:none; }
+  .controls::-webkit-scrollbar { display:none; }
+  #chat { scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+  #chat::-webkit-scrollbar { width:6px; }
+  #chat::-webkit-scrollbar-thumb { background:var(--line); border-radius:3px; }
+  @media (max-height:760px) { #mic { width:68px; height:68px; } #mic svg { width:28px; height:28px; } .mic-wrap { margin-bottom:12px; } .chip { padding:7px 12px; } main { padding-top:16px; gap:12px; } }
+
+  .mic-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:18px; }
+  #mic { position:relative; width:84px; height:84px; border-radius:50%; border:0; background:var(--accent); color:#fff; cursor:pointer;
+         display:grid; place-items:center; transition:background .15s, transform .15s; }
+  #mic svg { width:34px; height:34px; }
+  #mic:hover:not(:disabled) { background:var(--accent-hover); transform:translateY(-1px); }
+  #mic:focus-visible, .chip:focus-visible, .btn:focus-visible, input:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+  #mic:disabled { opacity:.45; cursor:not-allowed; }
+  #mic.listening { background:var(--rec); animation:ring 1.4s infinite; }
+  @keyframes ring { 0%{box-shadow:0 0 0 0 rgba(194,65,12,.45)} 100%{box-shadow:0 0 0 20px rgba(194,65,12,0)} }
   #status { color:var(--muted); min-height:1.5em; text-align:center; font-size:.95rem; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:16px; }
-  .chip { background:var(--accent-2); color:var(--text); border:1px solid var(--border); border-radius:999px; padding:8px 14px; font-size:.9rem; cursor:pointer; }
-  .chip:hover { border-color:var(--accent); }
-  #chat { display:flex; flex-direction:column; gap:10px; max-height:46vh; overflow-y:auto; padding:4px 2px; }
-  .msg { max-width:85%; padding:10px 14px; border-radius:16px; white-space:pre-wrap; }
-  .me { align-self:flex-end; background:var(--bubble-me); color:#fff; border-bottom-right-radius:4px; }
-  .bot { align-self:flex-start; background:var(--bubble-bot); border-bottom-left-radius:4px; }
-  form { display:flex; gap:8px; margin-top:12px; }
-  input[type=text] { flex:1; padding:12px 14px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); font:inherit; }
-  button.btn { padding:0 16px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); font:inherit; cursor:pointer; }
-  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
-  .tools { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
-  .tools .btn { padding:6px 12px; font-size:.85rem; }
+
+  .label { font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; }
+  .chips { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+  .chip { text-align:left; background:transparent; color:var(--text); border:1px solid var(--line); border-radius:12px;
+          padding:9px 13px; font:inherit; font-size:.9rem; cursor:pointer; transition:border-color .15s, background .15s; }
+  .chip:hover { border-color:var(--accent); background:var(--accent-soft); }
+
+  #chat { display:flex; flex-direction:column; gap:12px; flex:1; min-height:0; overflow-y:auto; padding:2px; }
+  #chat:empty::before { content:"Your conversation will appear here."; margin:auto; color:var(--muted); font-size:.95rem; }
+  .msg { max-width:86%; padding:11px 15px; border-radius:16px; white-space:pre-wrap; }
+  .me { align-self:flex-end; background:var(--me); color:var(--me-text); border-bottom-right-radius:4px; }
+  .bot { align-self:flex-start; background:var(--bot); border-bottom-left-radius:4px; }
+
+  form { display:flex; gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid var(--line); }
+  input[type=text] { flex:1; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--bg); color:var(--text); font:inherit; }
+  .btn { padding:0 18px; border-radius:12px; border:1px solid var(--line); background:transparent; color:var(--text); font:inherit; cursor:pointer; }
+  .btn:hover { border-color:var(--accent); }
+  .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  .btn.primary:hover { background:var(--accent-hover); }
+  .tools { display:flex; gap:8px; justify-content:center; }
+  .tools .btn { padding:6px 12px; font-size:.82rem; color:var(--muted); }
   .note { color:var(--muted); font-size:.85rem; text-align:center; margin-top:8px; }
-  #debug { display:none; margin-top:12px; padding:10px; border-radius:12px; border:1px dashed var(--border); font:12px/1.4 ui-monospace,Consolas,monospace; max-height:200px; overflow-y:auto; white-space:pre-wrap; color:var(--muted); }
+  footer { text-align:center; color:var(--muted); font-size:.78rem; }
+  /* Desktop: fit exactly in the window, only the chat scrolls internally */
+  @media (min-width:900px) and (min-height:600px) {
+    body { height:100vh; height:100dvh; overflow:hidden; }
+    main { height:100%; }
+  }
+  /* Narrow screens: single column */
+  @media (max-width:899px) { .layout { grid-template-columns:1fr; } .convo { min-height:55vh; } }
+  #debug { display:none; margin-top:12px; padding:10px; border-radius:12px; border:1px dashed var(--line); font:12px/1.4 ui-monospace,Consolas,monospace; max-height:200px; overflow-y:auto; white-space:pre-wrap; color:var(--muted); }
   body.debug #debug { display:block; }
+  @media (max-width:520px) { main { padding-top:20px; } .card { padding:18px 14px 14px; } }
 </style>
 </head>
 <body>
 <main>
-  <h1>Talk to Heet</h1>
-  <p class="sub">A voice bot that answers interview questions the way I would. Tap the mic and ask away, or pick a question below.</p>
+  <header>
+    <h1>Talk to Heet</h1>
+    <p class="sub">Ask me an interview question and hear my answer.</p>
+  </header>
 
-  <div class="card">
+  <div class="layout">
+  <section class="card controls">
     <div class="mic-wrap">
-      <button id="mic" aria-label="Tap to speak">🎤</button>
+      <button id="mic" aria-label="Tap to speak">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg>
+      </button>
       <div id="status" role="status" aria-live="polite">Tap the mic and ask a question</div>
+      <div class="tools">
+        <button class="btn" id="stop" type="button">Stop voice</button>
+        <button class="btn" id="mute" type="button">Voice: on</button>
+      </div>
     </div>
 
+    <p class="label">Suggested questions</p>
     <div class="chips" id="chips"></div>
 
-    <div id="chat" aria-live="polite"></div>
-
-    <form id="form">
-      <input type="text" id="text" placeholder="Or type your question…" autocomplete="off" maxlength="500">
-      <button class="btn primary" type="submit">Send</button>
-    </form>
-    <div class="tools">
-      <button class="btn" id="stop" type="button">⏹ Stop voice</button>
-      <button class="btn" id="mute" type="button">🔊 Voice on</button>
-    </div>
     <div class="note" id="note"></div>
     <div id="debug" aria-label="Debug log"></div>
+  </section>
+
+  <section class="card convo">
+    <div id="chat" aria-live="polite"></div>
+    <form id="form">
+      <input type="text" id="text" placeholder="Or type your question…" autocomplete="off" maxlength="500" aria-label="Type your question">
+      <button class="btn primary" type="submit">Send</button>
+    </form>
+  </section>
   </div>
 </main>
 
@@ -137,7 +188,7 @@ function speak(text) {
 $('stop').onclick = () => { if (synth) synth.cancel(); setStatus('Tap the mic and ask a question'); };
 $('mute').onclick = () => {
   muted = !muted;
-  $('mute').textContent = muted ? '🔇 Voice off' : '🔊 Voice on';
+  $('mute').textContent = muted ? 'Voice: off' : 'Voice: on';
   if (muted && synth) synth.cancel();
 };
 
